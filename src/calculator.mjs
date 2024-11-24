@@ -10,26 +10,43 @@ const view = new CalculatorView();
 server.on("request", (req, res) => {
     res.setHeader('content-type', 'text/html');
     const urlTokens = req.url.split('/');
-    let html;
-    if (!operations.get(urlTokens[1])) {
-        html = view.getHtml(`method ${urlTokens[1]} unsupported`, true)
-        res.end(html)
+    const operands = [];
+    const errorMessage = validateAndFillOperands(urlTokens, operands);
+    if (errorMessage) {
+        const html = view.getHtml(errorMessage, true);
+        res.end(html);
     } else {
-        const operands = getOperands(urlTokens);
-        if (!operands) {
-            html = view.getHtml(`wrong operands`, true)
-            res.end(html)
-        } else {
-            server.emit(urlTokens[1], operands, res)
-        }
+        server.emit(urlTokens[1], operands, res); 
+    }
 
     
-}})
-    function getOperands(urlTokens) {
+
+    
+})
+    function fillOperands(urlTokens, operands) {
         const op1 = +urlTokens[2];
         const op2 = +urlTokens[3];
+        let res;
         if (!isNaN(op1) && !isNaN(op2)) {
-            return [op1, op2]
+            operands[0] = op1;
+            operands[1] = op2;
+        } else {
+            res = "Wrong operands";
         }
+        return res;
 
+    }
+    function validateAndFillOperands(urlTokens, operands) {
+        let errorMessage = undefined;
+        errorMessage = validateMethod(urlTokens[1]);
+        if(!errorMessage) {
+            errorMessage = fillOperands(urlTokens, operands);
+        }
+        return errorMessage;
+
+    }
+    function validateMethod(methodName) {
+        if(!operations.has(methodName)) {
+            return `${methodName} is unsupported`
+        }
     }
